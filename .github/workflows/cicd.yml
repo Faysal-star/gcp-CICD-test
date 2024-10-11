@@ -1,0 +1,49 @@
+name: Build and Deploy To GCP
+
+on:
+  push:
+    branches: [ main ]
+env:
+  DOCKER_IMAGE: maskedpi/dockertest
+  GCP_PROJECT_ID: cloud-test-438101
+  GCP_INSTANCE_NAME: cloudpane-tst
+  GCP_INSTANCE_ZONE: us-central1-f
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Login to DockerHub
+      uses: docker/login-action@v1
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v2
+      with:
+        context: .
+        push: true
+        tags: ${{ env.DOCKER_IMAGE }}:latest
+
+  deploy-to-gcp:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+    - name: Setup Google Cloud SDK
+      uses: google-github-actions/setup-gcloud@v0.2.1
+      with:
+        project_id: ${{ env.GCP_PROJECT_ID }}
+        service_account_key: ${{ secrets.GCP_SA_KEY }}
+
+    - name: Deploy to GCP
+      run: |
+        gcloud compute ssh ${{ env.GCP_INSTANCE_NAME }} --zone ${{ env.GCP_INSTANCE_ZONE }} --command "
+        docker pull ${{ env.DOCKER_IMAGE }}:latest &&
+        docker stop dockertest-container || true &&
+        docker rm dockertest-container || true &&
+        docker run -d --name dockertest-container -p 80:80 ${{ env.DOCKER_IMAGE }}:latest
+        "

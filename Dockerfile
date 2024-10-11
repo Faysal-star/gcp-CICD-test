@@ -1,4 +1,4 @@
-FROM ubuntu:20.04
+FROM ubuntu:latest
 
 RUN DEBIAN_FRONTEND=noninteractive apt update && apt install nginx -y
 RUN rm -rf /var/www/html/*
