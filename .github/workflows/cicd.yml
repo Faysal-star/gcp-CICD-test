@@ -42,8 +42,10 @@ jobs:
     - name: Deploy to GCP
       run: |
         gcloud compute ssh ${{ env.GCP_INSTANCE_NAME }} --zone ${{ env.GCP_INSTANCE_ZONE }} --command "
-        docker pull ${{ env.DOCKER_IMAGE }}:latest &&
-        docker stop dockertest-container || true &&
-        docker rm dockertest-container || true &&
-        docker run -d --name dockertest-container -p 80:80 ${{ env.DOCKER_IMAGE }}:latest
+        sudo usermod -aG docker \$USER &&
+        sudo systemctl restart docker &&
+        sudo docker pull ${{ env.DOCKER_IMAGE }}:latest &&
+        sudo docker stop dockertest-container || true &&
+        sudo docker rm dockertest-container || true &&
+        sudo docker run -d --name dockertest-container -p 80:80 ${{ env.DOCKER_IMAGE }}:latest
         "
